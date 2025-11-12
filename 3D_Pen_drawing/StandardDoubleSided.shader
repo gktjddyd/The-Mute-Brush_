@@ -1,7 +1,7 @@
 Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
 {
 
-    //해당 쉐이더는 Tilt_Brush를 Oil Painting 셰이더를 LineRenderer에 적용 할 수 있도록 수정한 셰이더입니다. 
+    //해당 쉐이더는 Tilt_Brush의 Oil Painting 셰이더를 LineRenderer에 적용 할 수 있도록 수정한 셰이더입니다. 
     Properties
     {
         //유니티 인스펙터 창에 표시될 속성들.
