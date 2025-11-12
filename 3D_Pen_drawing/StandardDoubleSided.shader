@@ -1,7 +1,10 @@
 Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
 {
+
+    //해당 쉐이더는 Tilt_Brush를 Oil Painting 셰이더를 LineRenderer에 적용 할 수 있도록 수정한 셰이더입니다. 
     Properties
     {
+        //유니티 인스펙터 창에 표시될 속성들.
         _Color     ("Main Color", Color) = (1,1,1,1)
         _SpecColor ("Specular Color", Color) = (0.5,0.5,0.5,1)
         _Shininess ("Shininess", Range(0.01,1)) = 0.078125
@@ -14,6 +17,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
     SubShader
     {
         Tags { "Queue"="AlphaTest" "RenderType"="TransparentCutout" }
+        // Double Side로 해야하니
         Cull Off  LOD 400
 
         Pass
@@ -26,22 +30,26 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
             #pragma vertex   vert
             #pragma fragment frag
 
+            // URP 렌더링에 필요한 핵심 라이브러리
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             #define DECLARE_FOG_COORDS(name)
             #define TRANSFER_FOG_COORDS(o,pos)
             #define APPLY_FOG(coord,col)
-
+            
+            //GPU에서 효율적으로 접근할 수 있도록 프로퍼티들을 그룹화
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color, _SpecColor;
                 half  _Shininess, _MinLight, _Cutoff;
                 half4 _MainTex_ST;
             CBUFFER_END
 
+            // 기본 텍스쳐와 노말 맵
             TEXTURE2D(_MainTex);  SAMPLER(sampler_MainTex);
             TEXTURE2D(_BumpMap);  SAMPLER(sampler_BumpMap);
 
+            //버텍스 셰이더가 입력받는 정점
             struct Attributes
             {
                 float4 vertex  : POSITION;
@@ -51,6 +59,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
                 float4 color   : COLOR;
             };
 
+            //버텍스 쉐이더 계산 -> 프래그먼트 쉐이더로 넘겨줌
             struct Varyings
             {
                 float4 pos      : SV_POSITION;
@@ -61,7 +70,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
                 float3 t2       : TEXCOORD4;
                 half4  color    : COLOR;
             };
-
+            // 버텍스 셰이더 (Vertex Shader)
             Varyings vert (Attributes v)
             {
                 Varyings o;
@@ -70,6 +79,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
                 o.worldPos = TransformObjectToWorld(v.vertex);
                 o.color    = v.color * _Color;
 
+                // 노멀 맵핑을 위해 탄젠트 space로
                 float3 n = normalize(TransformObjectToWorldNormal(v.normal));
                 float3 t = normalize(TransformObjectToWorldDir(v.tangent.xyz));
                 float3 b = cross(n, t) * v.tangent.w;
@@ -77,7 +87,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
                 o.t0 = t;  o.t1 = b;  o.t2 = n;
                 return o;
             }
-
+            // 프래그먼트 셰이더 (Fragment Shader)
             half4 frag (Varyings i, half vface : VFACE) : SV_Target
             {
                 half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
@@ -124,7 +134,7 @@ Shader "Brush/StandardDoubleSided_URP_SoftLit_MultiLight"
                     half  sp = pow(saturate(dot(n, H2)), _Shininess * 128.0);
                     specular += _SpecColor.rgb * sp * attenColor * Ndot;
                 }
-
+                //최종 색상 결정
                 return half4(diffuse + specular, tex.a * i.color.a);
             }
             ENDHLSL
